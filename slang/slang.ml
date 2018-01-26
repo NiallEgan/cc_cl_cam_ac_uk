@@ -103,8 +103,3 @@ let _ = process_inputs
         then (try Tests.get_all_tests ()
               with Errors.Error s -> fatal_error "tests/" "Test.get_all_tests" s)
         else [(Option.infile, None)])
-
-
-
-
-
