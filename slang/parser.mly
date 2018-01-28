@@ -5,6 +5,13 @@
 
 let get_loc = Parsing.symbol_start_pos
 
+let depattern : (Past.loc * Past.var * Past.var * Past.var * Past.type_expr * Past.type_expr * Past.expr) -> Past.expr = function
+(loc, fresh_v, v1, v2, t1, t2, expr) -> Past.Let(loc, v1, t1, Past.Fst(loc, Past.Var(loc, fresh_v)),
+                                                 Past.Let(loc, v2, t2, Past.Snd(loc, Past.Var(loc, fresh_v)), expr))
+
+let find_fresh : Past.expr -> Past.var = function
+  _ -> "___" (* TODO: Change var type to introduce truly fresh variables *)
+
 %}
 
 /* Tokens and types */
@@ -14,7 +21,7 @@ let get_loc = Parsing.symbol_start_pos
 %token WHAT UNIT AND TRUE FALSE IF FI THEN ELSE LET REC IN BEGIN END BOOL INTTYPE UNITTYPE
 %token ARROW BAR INL INR FST SND FUN NUF CASE OF REF ASSIGN BANG WHILE DO OD
 
-%left ASSIGN              
+%left ASSIGN
 %left ADD SUB                     /* lowest precedence */
 %left MUL DIV ANDOP OROP EQUAL ARROW  LT /* medium precedence */
 /*
@@ -80,6 +87,9 @@ expr:
 | INR texpr expr %prec UMINUS        { Past.Inr(get_loc(), $2, $3) }
 | FUN LPAREN IDENT COLON texpr RPAREN ARROW expr END
                                      { Past.Lambda(get_loc(), ($3, $5, $8)) }
+| LET IDENT LPAREN IDENT COLON texpr COMMA IDENT COLON texpr RPAREN COLON texpr EQUAL expr IN expr END
+                                     { let depatterned_expr = depattern(get_loc(), find_fresh($15), $4, $8, $6, $10, $15) in
+                                                                  Past.LetFun(get_loc(), $2, (find_fresh($15), Past.TEproduct($6, $10), depatterned_expr), $13, $17)}
 | LET IDENT COLON texpr EQUAL expr IN expr END           { Past.Let (get_loc(), $2, $4, $6, $8) }
 | LET IDENT LPAREN IDENT COLON texpr RPAREN COLON texpr EQUAL expr IN expr END
                                      { Past.LetFun (get_loc(), $2, ($4, $6, $11), $9, $13) }
